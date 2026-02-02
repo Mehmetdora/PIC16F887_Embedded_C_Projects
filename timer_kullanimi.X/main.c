@@ -44,6 +44,9 @@ void __interrupt() isr(void){
 }
 
 
+void clear_pins(void);
+
+
 
 
 int main(int argc, char** argv) {
@@ -119,7 +122,7 @@ int main(int argc, char** argv) {
     unsigned int ms_counter = 0;    // butona basıldığı andan itibaren geçen sürenin tutulacağı değişken
     char button_pressed = 0;        // butona basılıp basılmadığı flag i
 
-    while(1){
+    while(0){
         
             if(RC6 == 1 && button_pressed == 0){        // butona basıldıysa zamanı kaydet ve flag i aç    
                 button_pressed = 1;
@@ -141,10 +144,238 @@ int main(int argc, char** argv) {
     }
     
     
+    
+    // pin 2-3-4-5 ile loop şeklinde led yapmak , timer kullanarak bekletmeli(aslında beklemiyor , sadece geçen zaman boyunca clock değerleri 8 bit üzerinde sürekli saydırılıyor)
+    // timer kullanımı ile cpu kitlenmiyor, diğer işlemler etkilenmemiş olur
+    
+    PORTB = 0x00;    
+    unsigned int led_counter_ms = 0;
+    char led_index = 0;
+    char is_started = 0;
+    
+    
+    while(0){
+        
+        // ilk başlangıçta is_started set edilir ve sonra süreki döngü bu değişken ile devam eder
+        if(PORTBbits.RB2 == 0 && is_started == 0){
+            
+            led_counter_ms = ms_tick;
+            RB2 = 1;
+            is_started =1;
+        }
+        
+        if(is_started == 1){
+            
+            if((ms_tick - led_counter_ms) > 500){
+                
+                clear_pins();           // Tüm pinlerin sıfırlanması
+                led_counter_ms = 0;
+                
+                
+                led_index++;
+                if(led_index > 3){
+                    led_index = 0;
+                }
+                
+                
+                switch(led_index){          // yeni index e göre pin yakma
+                    case 0: RB2 = 1; break;
+                    case 1: RB3 = 1; break;
+                    case 2: RB4 = 1; break;
+                    case 3: RB5 = 1; break;
+                }
+                
+                led_counter_ms = ms_tick;   // led yanma sayacını sıfırla
+                
+            }
+        }
+        
+        
+    }
+    
+    
+    
+    
+    
+    // buton ile tetiklenince led loop başlasın
+    // led loop her butona basıp bırakılınca reset olsun ve baştan dönmeye başlasın(ilk loop başlangıcıda aslında bir resettir)
+    
+    
+    TRISB = 0x00;   // Tüm B pinlerini output yap
+    PORTB = 0x00;
+    TRISC = 0x40;   // C6 pinini input yap
+    
+    unsigned int led_on_time = 0;   // led in ne kadar süre yanacağının ölçülmesi için zaman tutacak değişken
+    char is_led_loop_started = 0;   // led döngüsünün durumunu tutan boolen
+    button_pressed = 0;             // butona ilk kez basılma durumunu tutan boolen
+    led_index = 0;                  // led loop içindeki led indexi
+    
+    while(0){
+        
+        // butona ilk kez basma
+        if(RC6 == 1 && button_pressed == 0){           
+            button_pressed = 1;           
+        }
+        
+        
+        // butonun release olması durumu, tüm loop ve değişkenlerin sıfırlanması
+        if(RC6 == 0 && button_pressed == 1){
+            // LED loop en baştan tekrar başlasın
+            
+            clear_pins();
+            
+            button_pressed = 0;
+            is_led_loop_started = 1;
+            led_index = 0;
+            led_on_time = ms_tick;
+            
+            RB2 = 1;
+            
+        }
+        
+        // led loop başlatılması ve sürekli dönmesi
+        if(is_led_loop_started == 1){
+            
+            
+            if((ms_tick - led_on_time) > 1000){
+                
+                
+                clear_pins();
+                led_index++;
+                if(led_index > 3){
+                    led_index = 0;
+                }
+                
+                switch(led_index){
+                    case 0: RB2 = 1; break;
+                    case 1: RB3 = 1; break;
+                    case 2: RB4 = 1; break;
+                    case 3: RB5 = 1; break;
+                }
+                
+                led_on_time = ms_tick;   
+            }
+        }
+    }
+    
+    
+    
 
     
     
+    
+    
+    // Aynı led loop örneği ama bu sefer led loop ilk proğram başlatılınca dönmeye başlayacak
+    // eğer butona bir kısa(500 ms altında) basılırsa led loop hangi ledde ise bir sonrakine hemen atlasın
+    // eğer butona bir uzun(1000 ms üstü) basılırsa led loop kapansın.
+    
+    
+    
+    // RC6 pinine buton bağlı
+    // RB2, RB3, RB4 , RB5 pinlerine ledler bağlı
+    TRISB = 0x00;   // Tüm B pinlerini output yap
+    PORTB = 0x00;
+    TRISC = 0x40;   // C6 pinini input yap
+    
+    
+    unsigned int button_press_time = 0; // butona basılma süresi
+    button_pressed = 0;                 // butona basılma durumu
+    led_on_time = 0;                    // led yanma süresi
+    is_led_loop_started = 1;            // led döngüsü otomatik başlayacak
+    led_index = 4;                      // led döngüsünde hangi led yanıyor bilgisi, son led ile başlasın ki ilk iterasyonda ilk led yanması ile başlasın
+    
+    
+    while(1){
+        
+        
+        if(RC6 == 1 && button_pressed == 0){
+            button_pressed = 1;
+            button_press_time = ms_tick;        // butona ne zaman basıldığı bilgisi 
+        }
+        
+        if(RC6 == 0 && button_pressed == 1 && (ms_tick - button_press_time) > 20){
+            // eğer kısa basılırsa bir sonraki led indexine geç, uzun basılırsa döngüyü durdur.
+            
+            
+            if((ms_tick - button_press_time)<500){
+                
+                // aynı zamanda buton bir kez basmak led döngüsünü başlatmışda olur, eğer döngü durdurulmuşsa
+                if(is_led_loop_started == 0){
+                    
+                    is_led_loop_started = 1;
+                    led_index = 4;  // Döngüyü ilk ledden başlat
+                    
+                }else{
+                    
+                    led_index++;                                    // bir sonraki led e atla
+                                                                // led yanmasından itibaren süreyi saymaya başla
+                    clear_pins();
+                    switch(led_index){
+                        case 0: RB2 = 1; break;
+                        case 1: RB3 = 1; break;
+                        case 2: RB4 = 1; break;
+                        case 3: RB5 = 1; break;
+                    }
+                    led_on_time = ms_tick;
+                }
+                
+                
+                
+            }else if((ms_tick - button_press_time)> 1000){
+                is_led_loop_started = 0;
+                clear_pins();       // led döngüsünü resetle
+            }
+                
+            button_pressed = 0;     // buton durumunu resetle
+        }
+        
+        
+        
+        if(is_led_loop_started == 1){
+            if((ms_tick - led_on_time) > 1000){
+                
+
+                clear_pins();
+
+                led_index++;
+                if(led_index > 3){
+                    led_index = 0;
+                }
+
+                switch(led_index){
+                    case 0: RB2 = 1; break;
+                    case 1: RB3 = 1; break;
+                    case 2: RB4 = 1; break;
+                    case 3: RB5 = 1; break;
+                }
+                
+                led_on_time = ms_tick;
+            }
+            
+            
+            
+            
+            
+        }
+        
+        
+        
+    }
+    
+    
+    
+    
+    
+    
+    
     return (EXIT_SUCCESS);
+}
+
+
+
+// Tüm B portlarının clear edilmesi
+void clear_pins(void){
+    PORTB = 0x00;
 }
 
 
