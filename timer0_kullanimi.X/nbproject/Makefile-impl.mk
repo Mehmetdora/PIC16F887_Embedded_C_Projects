@@ -24,7 +24,7 @@ CLEAN_SUBPROJECTS=${CLEAN_SUBPROJECTS_${SUBPROJECTS}}
 
 
 # Project Name
-PROJECTNAME=timer_kullanimi.X
+PROJECTNAME=timer0_kullanimi.X
 
 # Active Configuration
 DEFAULTCONF=default
