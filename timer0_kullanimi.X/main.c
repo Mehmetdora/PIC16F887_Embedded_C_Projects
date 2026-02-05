@@ -36,7 +36,7 @@ volatile unsigned int ms_tick = 0;  // Zaman sayan global değişken
 
 void __interrupt() isr(void){
     
-    if(INTCONbits.T0IF){        // Timer0 her taşmasında flag 1 olur , yani 250 prescaler(1 ms) geçmiş olur
+    if(INTCONbits.T0IF){        // Timer0 her taşmasında flag 1 olur , yani 1 ms geçmiş olur
         INTCONbits.T0IF = 0;    // Tekrar flag i reset et sonraki Timer0 taşması için
         TMR0 = 6;               // Timer0 clock değerini tekrar 6 dan başlat
         ms_tick++;              // global volatile olan değişkene 1 ms ekle
@@ -46,7 +46,7 @@ void __interrupt() isr(void){
 
 void clear_pins(void);
 
-
+void init_timer0(void);
 
 
 int main(int argc, char** argv) {
@@ -54,21 +54,12 @@ int main(int argc, char** argv) {
  
 
     // OSCCILATOR AYARLARI
-    OSCCONbits.IRCF = 0b110; // Bit 6-4: 110 yaparak 4 MHz seçildi
+    OSCCONbits.IRCF = 0b110; // Bit 6-4: 110 yaparak 4 MHz seçildi , 1 instruction 1 MHz de bitecek( 1 sn'de 1.000.000 instruction yapılır)
     OSCCONbits.SCS = 1;      // kendi osilatörünü kullansın
     
     
     // TIMER AYARLARI
-    OPTION_REGbits.T0CS = 0;    // 0 : dahili clock, 1: harici clock 
-    OPTION_REGbits.PSA = 0;     // 0: Timer0, 1: Watchdog
-    OPTION_REGbits.PS = 0b001;  // Prescaler oranı seçimi
-    
-    // Timer0 8 bit(256 değer) tutabildiği için ve 1000/4 = 250 olduğundan tam 1 ms lik ölçüm için clock sayacını 6 dan başlat
-    TMR0 = 6;   
-    
-    INTCONbits.T0IF = 0;        // Timer0 flag resetleme
-    INTCONbits.T0IE = 1;        // Timer0 interrupt enable yap
-    INTCONbits.GIE = 1;         // Global interrupt enable yap
+    init_timer0();
     
     // Timer0 Çalışma Mantığı Hakkında
     /*
@@ -371,6 +362,25 @@ int main(int argc, char** argv) {
     return (EXIT_SUCCESS);
 }
 
+
+
+
+// Timer0 için configuration
+void init_timer0(void){
+    
+    
+    INTCONbits.GIE = 1;         // Global interrupt enable yap
+    INTCONbits.T0IE = 1;        // Timer0 interrupt enable yap 
+
+    OPTION_REGbits.T0CS = 0;    // clock source seçimi  -  0 : dahili clock, 1: harici clock 
+    OPTION_REGbits.PSA = 0;     // prescaler hangisi için kullanılacağı  -  0: Timer0, 1: Watchdog
+    OPTION_REGbits.PS = 0b001;  // Prescaler oranı seçimi  -  1:4 (sayacın her bir flag için tam bir ms sayması için)
+    
+    TMR0 = 0;                   // Timer0 sayacının başlangıç değeri
+    
+    INTCONbits.T0IF = 0;        // Timer0 interrupt flag i reset et 
+            
+}
 
 
 // Tüm B portlarının clear edilmesi

@@ -26,7 +26,7 @@
 #pragma config LVP = OFF             // Low Voltage Programming: KAPALI (RB3 pinini kullanabilmek iÁin kapal? olmal?)
 
 
-
+// FOSC/4 için clock sinyali frekansı , pic için de aynı değer seçilmelidir.
 #define _XTAL_FREQ 4000000
 
 
@@ -56,38 +56,39 @@
  */
 
 
-volatile unsigned char tmr1_overflow_count = 0; // 1 sn için overflow sayacı
+volatile unsigned char tmr1_overflow_count = 0; // 1 sn için overflow sayacı‚
 volatile unsigned int timer1 = 0;              // global sn sayacı
 volatile unsigned int timer0 = 0;              // global ms sayacı
 
-void __interrupt() ISR(void)                    // ISR() arka planda proğram counter ve adres yöntemini yapar
-{                                               // __interrupt özel bir kelimedir, compiler tarafından anlaşılan özel bir komuttur.
+void __interrupt() ISR(void)                    // __interrupt özel bir kelimedir, compiler tarafından anlaşılan özel bir komuttur.
+{                                               
+    
+    // Timer0 Interrupt Control
+    if(INTCONbits.T0IF && INTCONbits.T0IE){     // Timer0 overflow olup flag set edilmiş mi - aktif mi kontrol et
+                                            
+        INTCONbits.T0IF = 0;                    // flag i tekrar resetle
+        
+        // Timer0 8 bit(256 değer) tutabildiği için ve 1000/4 = 250 olduğundan tam 1 ms lik ölçüm için clock sayacını 6 dan başlat
+        TMR0 = 6;                               
+        timer0++;                               // ms sayacını arttır.
+    }
     
     // Timer1 Interrupt Control
-    if (TMR1IF && TMR1IE)                                 // Timer1 in overflow olup olmadığını kontrol et, olmuşsa timer1 sayacını sayma işlemini yap
+    if (TMR1IF && TMR1IE)                       // Timer1 overflow olup flag set edilmiş mi - aktif mi kontrol et
     {
+        TMR1IF = 0;                             // Flag reset et, Tekrar flag i temizle ki diğer flag geldiğini kontrol edebilelim
         
-        TMR1IF = 0;          // Flag temizle    Tekrar flag i temizle ki diğer flag geldiğini kontrol edebilelim
-        
+        // 1:8 oranı kullanıldığı için 2 kez overflow gerekiyor, tam olarak 1 sn elde edebilmek için bu değerden başlatıldı
         TMR1H = 3036 >> 8;                      // Sayacın tam 1 sn olarak sayabilmesi için başlangıç değeri set etme
         TMR1L = 3036 & 0xFF;
                
-        tmr1_overflow_count++;                  // overflow sayacı , 2 tanesi 1 sn yapıyor
+        tmr1_overflow_count++;                  // overflow sayacı , 2 tanesi 1 sn yapıyor - prescaler oranı ile tekrar ayarlanabilir
 
         if (tmr1_overflow_count >= 2)   // 2 sn de bir timer1 sayacı artsın, her artışta overflow sayacı da sıfırlansın 
         {
             tmr1_overflow_count = 0;
-            timer1++;  // SADECE HABER VER      // Ana sn sayacı, kullanılacak olan, tmr1_overflow_count da 0.5 sn için kullanılabilri aslında
+            timer1++;  // SADECE HABER VER      // Ana sn sayacı
         }
-    }
-    
-    
-    // Timer0 Interrupt Control
-    if(INTCONbits.T0IF && INTCONbits.T0IE){     // timer0 sayarken overflow olup flag set edilmiş mi kontrol et
-                                            
-        INTCONbits.T0IF = 0;                    // flag i tekrar resetle
-        TMR0 = 6;                               // TMR0 ın başlangıç değerini ver ki 250 ms saysın(sn nin 1/4 ü, tam 1 sn elde etmek için)
-        timer0++;                               // ms sayacını arttır.
     }
     
 }
@@ -160,7 +161,7 @@ int main(int argc, char** argv) {
     
     
 
-    // timer0 ile buton debounce kontrolü ve led kontrolü
+    // timer0 ile buton debounce kontrolü ve led blink
     
     // kontrol değişkenleri
     unsigned int timer0_copy = 0;    // butona basıldığı andan itibaren geçen sürenin tutulacağı değişken
@@ -443,19 +444,20 @@ int main(int argc, char** argv) {
 }
 
 
-
+// Timer0 için configuration
 void init_timer0(void){
     
-    OPTION_REGbits.T0CS = 0;    // 0 : dahili clock, 1: harici clock 
-    OPTION_REGbits.PSA = 0;     // 0: Timer0, 1: Watchdog
-    OPTION_REGbits.PS = 0b001;  // Prescaler oranı seçimi
     
-    // Timer0 8 bit(256 değer) tutabildiği için ve 1000/4 = 250 olduğundan tam 1 ms lik ölçüm için clock sayacını 6 dan başlat
-    TMR0 = 6;
-    
-    INTCONbits.T0IE = 1;        // Timer0 flag resetleme
-    INTCONbits.T0IF = 0;        // Timer0 interrupt enable yap
     INTCONbits.GIE = 1;         // Global interrupt enable yap
+    INTCONbits.T0IE = 1;        // Timer0 interrupt enable yap 
+
+    OPTION_REGbits.T0CS = 0;    // clock source seçimi  -  0 : dahili clock, 1: harici clock 
+    OPTION_REGbits.PSA = 0;     // prescaler hangisi için kullanılacağı  -  0: Timer0, 1: Watchdog
+    OPTION_REGbits.PS = 0b001;  // Prescaler oranı seçimi  -  1:4 (sayacın her bir flag için tam bir ms sayması için)
+    
+    TMR0 = 0;                   // Timer0 sayacının başlangıç değeri
+    
+    INTCONbits.T0IF = 0;        // Timer0 interrupt flag i reset et 
             
 }
 

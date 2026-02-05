@@ -12,7 +12,7 @@
 
 <item itemtype="Resistor" CircId="Resistor-7" mainComp="false" ShowProp="Resistance" Show_id="false" Show_Val="true" Pos="-148,-120" rotation="0" hflip="1" vflip="1" label="Resistor-7" idLabPos="-16,-24" labelrot="0" valLabPos="-16,6" valLabRot="0" Resistance="10 kΩ" />
 
-<item itemtype="MCU" CircId="p16F887-8" mainComp="false" Show_id="true" Show_Val="false" Pos="-44,-124" rotation="0" hflip="1" vflip="1" label="p16F887-8" idLabPos="0,-20" labelrot="0" valLabPos="-16,20" valLabRot="0" Frequency="4 MHz" Auto_Load="false" saveEepr="true" Rst_enabled="true" Ext_Osc="false" Clk_Out="false" MainMcu="true" SerialMon="-1" />
+<item itemtype="MCU" CircId="p16F887-8" mainComp="false" Show_id="true" Show_Val="false" Pos="-44,-124" rotation="0" hflip="1" vflip="1" label="p16F887-8" idLabPos="0,-20" labelrot="0" valLabPos="-16,20" valLabRot="0" Frequency="4 MHz" Program="timer1_kullanimi.X/dist/default/production/timer1_kullanimi.X.production.hex" Auto_Load="false" saveEepr="true" Rst_enabled="true" Ext_Osc="false" Clk_Out="false" MainMcu="true" SerialMon="-1" />
 
 <item itemtype="Resistor" CircId="Resistor-9" mainComp="false" ShowProp="Resistance" Show_id="false" Show_Val="true" Pos="148,-76" rotation="0" hflip="1" vflip="1" label="Resistor-9" idLabPos="-16,-24" labelrot="0" valLabPos="-16,6" valLabRot="0" Resistance="220 Ω" />
 
